@@ -1,0 +1,121 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chatbot</title>
+  <link rel="stylesheet" href="{% static 'chatbot/style.css' %}">
+</head>
+<body>
+  <div id="chat-container">
+    <header id="chat-header">Chatbot</header>
+
+    <main id="chat-log" hidden aria-live="polite"></main>
+
+    <section id="quick-questions" hidden aria-label="Perguntas rápidas">
+      <button type="button" data-question="Olá">👋 Olá</button>
+      <button type="button" data-question="Quais são os serviços oferecidos?">💼 Serviços</button>
+      <button type="button" data-question="Vocês trabalham com inteligência artificial?">🤖 IA</button>
+      <button type="button" data-question="Como entro em contato?">📞 Contato</button>
+    </section>
+
+    <form id="input-area" hidden>
+      {% csrf_token %}
+      <input id="user-input" type="text" placeholder="Digite sua pergunta aqui..." autocomplete="off" aria-label="Digite sua pergunta">
+      <button class="send-btn" type="submit">Enviar</button>
+    </form>
+
+    <section id="start-chat">
+      <button id="start-button" type="button">Iniciar Conversa</button>
+    </section>
+  </div>
+
+  <script>
+    // O Django gera a URL correta a partir do nome definido em chatbot/urls.py.
+    const chatUrl = "{% url 'chat' %}";
+    const chatLog = document.getElementById("chat-log");
+    const input = document.getElementById("user-input");
+
+    // Cria mensagens usando textContent para que o texto seja exibido como texto,
+    // sem interpretar caracteres digitados pelo usuário como código HTML.
+    function addMessage(text, kind) {
+      const message = document.createElement("div");
+      message.className = `message ${kind}`;
+      message.textContent = text;
+      chatLog.appendChild(message);
+      rolarParaBaixo();
+    }
+
+    function rolarParaBaixo() {
+      chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    function iniciarChat() {
+      document.getElementById("start-chat").hidden = true;
+      chatLog.hidden = false;
+      document.getElementById("quick-questions").hidden = false;
+      document.getElementById("input-area").hidden = false;
+      addMessage("Olá! Clique nos botões ou digite sua pergunta para começar.", "bot");
+      input.focus();
+    }
+
+    async function enviarPergunta(perguntaManual = null) {
+      const pergunta = (perguntaManual ?? input.value).trim();
+      if (!pergunta) {
+        input.focus();
+        return;
+      }
+
+      addMessage(pergunta, "user");
+      input.value = "";
+
+      const digitando = document.createElement("div");
+      digitando.className = "message bot";
+      digitando.textContent = "Digitando...";
+      chatLog.appendChild(digitando);
+      rolarParaBaixo();
+
+      // O token CSRF é exigido pelo middleware de segurança padrão do Django.
+      const csrf = document.querySelector("[name=csrfmiddlewaretoken]").value;
+
+      try {
+        const response = await fetch(chatUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrf
+          },
+          body: JSON.stringify({ pergunta: pergunta })
+        });
+
+        // Se o servidor retornar um erro HTTP, mostramos uma mensagem clara.
+        if (!response.ok) {
+          throw new Error(`Erro HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        digitando.remove();
+        addMessage(data.resposta || "Não foi possível obter uma resposta.", "bot");
+      } catch (error) {
+        digitando.remove();
+        addMessage("Desculpe, ocorreu um erro na comunicação com o servidor. Verifique se o Django está em execução.", "bot");
+        console.error("Falha ao consultar o chatbot:", error);
+      }
+    }
+
+    document.getElementById("start-button").addEventListener("click", iniciarChat);
+
+    document.getElementById("input-area").addEventListener("submit", function(event) {
+      event.preventDefault(); // Evita recarregar a página ao enviar o formulário.
+      enviarPergunta();
+    });
+
+    document.querySelectorAll("[data-question]").forEach(function(button) {
+      button.addEventListener("click", function() {
+        enviarPergunta(button.dataset.question);
+      });
+    });
+  </script>
+</body>
+</html>

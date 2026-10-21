@@ -1,0 +1,108 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Empresa Fictícia - Soluções Tecnológicas</title>
+  <link rel="stylesheet" href="{% static 'empresa_ficticia/style.css' %}">
+</head>
+<body>
+  <header>Empresa Fictícia - Soluções Tecnológicas</header>
+  <main>
+    <h1>Bem-vindo à Empresa Fictícia</h1>
+    <p>Oferecemos soluções em tecnologia, desenvolvimento de software, inteligência artificial e muito mais.</p>
+    <p>Use o chatbot no canto inferior direito para tirar suas dúvidas!</p>
+  </main>
+  <footer>&copy; 2025 Empresa Fictícia</footer>
+
+  <button id="chatbot-toggle" type="button" aria-label="Abrir ou fechar chatbot" aria-expanded="false">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" aria-hidden="true">
+      <circle cx="32" cy="32" r="30" fill="#004aad"/>
+      <rect x="18" y="24" width="8" height="8" rx="2" fill="#fff"/>
+      <rect x="38" y="24" width="8" height="8" rx="2" fill="#fff"/>
+    </svg>
+  </button>
+
+  <section id="chatbot-box" aria-label="Chatbot" aria-hidden="true">
+    <div id="chatbot-header">
+      <span>Chatbot 🤖</span>
+      <button id="close-chat" type="button" aria-label="Fechar chatbot">×</button>
+    </div>
+    <div id="chat-log" aria-live="polite"></div>
+    <form id="input-area">
+      {% csrf_token %}
+      <input type="text" id="user-input" name="pergunta" placeholder="Digite sua pergunta..." autocomplete="off" aria-label="Digite sua pergunta">
+      <button class="send-btn" type="submit">Enviar</button>
+    </form>
+    <div id="quick-questions">
+      <button type="button" data-question="olá">Olá</button>
+      <button type="button" data-question="ajuda">Ajuda</button>
+      <button type="button" data-question="como entro em contato?">Contato</button>
+    </div>
+  </section>
+
+  <script>
+    const chatUrl = "{% url 'chat' %}";
+    const chatbotBox = document.getElementById("chatbot-box");
+    const input = document.getElementById("user-input");
+    const log = document.getElementById("chat-log");
+
+    function toggleChatbot(forceOpen = null) {
+      const aberto = forceOpen === null ? !chatbotBox.classList.contains("aberto") : forceOpen;
+      chatbotBox.classList.toggle("aberto", aberto);
+      chatbotBox.setAttribute("aria-hidden", String(!aberto));
+      document.getElementById("chatbot-toggle").setAttribute("aria-expanded", String(aberto));
+      if (aberto) input.focus();
+    }
+
+    function appendMessage(text, sender) {
+      const div = document.createElement("div");
+      div.className = "message " + sender;
+      div.textContent = text;
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    async function sendMessage(textOverride = null) {
+      const msg = (textOverride ?? input.value).trim();
+      if (!msg) return;
+      appendMessage(msg, "user");
+      input.value = "";
+      const typing = document.createElement("div");
+      typing.className = "message bot typing";
+      typing.textContent = "Digitando...";
+      log.appendChild(typing);
+      log.scrollTop = log.scrollHeight;
+
+      try {
+        const csrf = document.querySelector("[name=csrfmiddlewaretoken]").value;
+        const response = await fetch(chatUrl, {
+          method: "POST",
+          headers: {"Content-Type": "application/json", "X-CSRFToken": csrf},
+          body: JSON.stringify({pergunta: msg})
+        });
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const data = await response.json();
+        typing.remove();
+        appendMessage(data.resposta, "bot");
+      } catch (error) {
+        typing.remove();
+        appendMessage("Não foi possível comunicar com o servidor. Verifique se o Django está em execução.", "bot");
+        console.error(error);
+      }
+      input.focus();
+    }
+
+    document.getElementById("chatbot-toggle").addEventListener("click", () => toggleChatbot());
+    document.getElementById("close-chat").addEventListener("click", () => toggleChatbot(false));
+    document.getElementById("input-area").addEventListener("submit", event => {
+      event.preventDefault();
+      sendMessage();
+    });
+    document.querySelectorAll("[data-question]").forEach(button => {
+      button.addEventListener("click", () => sendMessage(button.dataset.question));
+    });
+  </script>
+</body>
+</html>

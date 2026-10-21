@@ -1,0 +1,12 @@
+{
+  "name": "Chatbot Django - aula",
+  "image": "mcr.microsoft.com/devcontainers/python:1-3.12-bookworm",
+  "forwardPorts": [8000],
+  "portsAttributes": {
+    "8000": {
+      "label": "Chatbot Django",
+      "onAutoForward": "openBrowser"
+    }
+  },
+  "postCreateCommand": "python -m pip install -r requirements.txt && python manage.py migrate"
+}

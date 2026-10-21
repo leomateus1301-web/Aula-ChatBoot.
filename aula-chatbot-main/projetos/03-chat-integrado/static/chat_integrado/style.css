@@ -1,0 +1,100 @@
+body {
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-image: url('https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1350&q=80');
+            background-size: cover;
+            background-position: center;
+            color: white;
+        }
+        header {
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            text-align: center;
+        }
+        header img {
+            height: 50px;
+            vertical-align: middle;
+        }
+        h1 {
+            display: inline;
+            margin-left: 15px;
+        }
+        main {
+            padding: 40px;
+            background-color: rgba(0,0,0,0.5);
+        }
+        #chatbot-icon {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            cursor: pointer;
+            width: 60px;
+            height: 60px;
+            z-index: 1000;
+        }
+        #chatbot-icon img {
+            width: 100%;
+            border-radius: 50%;
+        }
+        #chat-window {
+            display: none;
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            width: 300px;
+            height: 450px;
+            background: white;
+            border-radius: 10px;
+            color: black;
+            padding: 10px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.3);
+            flex-direction: column;
+            z-index: 1000;
+        }
+        #chat-log {
+            flex-grow: 1;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            padding-right: 5px;
+        }
+        .message {
+            padding: 8px 10px;
+            margin: 5px;
+            border-radius: 10px;
+            max-width: 85%;
+            word-wrap: break-word;
+        }
+        .user { background-color: #d1e7dd; align-self: flex-end; }
+        .bot { background-color: #f8d7da; align-self: flex-start; }
+        #user-input {
+            width: 70%;
+            padding: 5px;
+            font-size: 14px;
+        }
+        #send-btn {
+            padding: 5px 10px;
+            font-size: 14px;
+        }
+        .sugestao {
+            margin-top: 10px;
+        }
+        .sugestao button {
+            margin: 3px;
+            padding: 5px 8px;
+            border: none;
+            border-radius: 5px;
+            background-color: #0d6efd;
+            color: white;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+
+/* Estado aberto controlado pelo JavaScript. */
+#chat-window.aberto {
+    display: flex;
+}

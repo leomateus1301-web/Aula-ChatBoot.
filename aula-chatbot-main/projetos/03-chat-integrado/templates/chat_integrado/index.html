@@ -1,0 +1,111 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Empresa de Tecnologia</title>
+  <link rel="stylesheet" href="{% static 'chat_integrado/style.css' %}">
+</head>
+<body>
+  <header>
+    <img src="https://img.icons8.com/color/96/artificial-intelligence.png" alt="Logo">
+    <h1>Empresa de Tecnologia</h1>
+  </header>
+  <main>
+    <h2>Transformamos dados em soluções.</h2>
+    <p>Fale com nosso robô clicando no ícone no canto inferior.</p>
+  </main>
+
+  <button id="chatbot-icon" type="button" aria-label="Abrir chatbot" aria-expanded="false">
+    <img src="https://img.icons8.com/fluency/96/chatbot.png" alt="">
+  </button>
+
+  <section id="chat-window" aria-label="Chatbot" aria-hidden="true">
+    <div id="chat-log" aria-live="polite">
+      <div class="message bot">Olá! Como posso te ajudar?</div>
+      <div class="sugestao">
+        <button type="button" data-question="Qual é o horário de funcionamento?">Horário</button>
+        <button type="button" data-question="Vocês fazem entrega?">Entrega</button>
+        <button type="button" data-question="Qual o telefone de contato?">Telefone</button>
+        <button type="button" data-question="Qual o endereço?">Endereço</button>
+      </div>
+    </div>
+    <form id="input-area">
+      {% csrf_token %}
+      <input id="user-input" name="pergunta" placeholder="Digite sua pergunta..." autocomplete="off" aria-label="Digite sua pergunta">
+      <button id="send-btn" type="submit">Enviar</button>
+    </form>
+  </section>
+
+  <script>
+    const chatUrl = "{% url 'chat' %}";
+    const janela = document.getElementById("chat-window");
+    const input = document.getElementById("user-input");
+    const botaoChat = document.getElementById("chatbot-icon");
+    const chatLog = document.getElementById("chat-log");
+
+    function abrirChat() {
+      const aberto = janela.classList.toggle("aberto");
+      botaoChat.setAttribute("aria-expanded", String(aberto));
+      janela.setAttribute("aria-hidden", String(!aberto));
+      if (aberto) {
+        rolarParaBaixo();
+        input.focus();
+      }
+    }
+
+    function rolarParaBaixo() {
+      chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    function adicionarMensagem(texto, classe) {
+      const div = document.createElement("div");
+      div.className = "message " + classe;
+      div.textContent = texto;
+      chatLog.appendChild(div);
+      rolarParaBaixo();
+    }
+
+    async function enviarPergunta(perguntaManual = null) {
+      const pergunta = (perguntaManual ?? input.value).trim();
+      if (!pergunta) return;
+
+      adicionarMensagem(pergunta, "user");
+      input.value = "";
+      const digitando = document.createElement("div");
+      digitando.className = "message bot typing";
+      digitando.textContent = "Digitando...";
+      chatLog.appendChild(digitando);
+      rolarParaBaixo();
+
+      try {
+        const csrf = document.querySelector("[name=csrfmiddlewaretoken]").value;
+        const response = await fetch(chatUrl, {
+          method: "POST",
+          headers: {"Content-Type": "application/json", "X-CSRFToken": csrf},
+          body: JSON.stringify({pergunta})
+        });
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const data = await response.json();
+        digitando.remove();
+        adicionarMensagem(data.resposta, "bot");
+      } catch (error) {
+        digitando.remove();
+        adicionarMensagem("Desculpe, ocorreu um erro de comunicação. Verifique o servidor.", "bot");
+        console.error(error);
+      }
+      input.focus();
+    }
+
+    botaoChat.addEventListener("click", abrirChat);
+    document.getElementById("input-area").addEventListener("submit", event => {
+      event.preventDefault();
+      enviarPergunta();
+    });
+    document.querySelectorAll("[data-question]").forEach(button => {
+      button.addEventListener("click", () => enviarPergunta(button.dataset.question));
+    });
+  </script>
+</body>
+</html>
